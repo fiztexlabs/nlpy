@@ -1,0 +1,23 @@
+#Python
+__pycache__/
+
+# KORSAR starters
+*.bat
+
+# KORSAR output
+out/
+korres
+korsav
+korlis
+kutlis
+log_calc.txt
+log_start.txt
+log_proc.txt
+log_restart.txt
+*.dat
+
+# executables
+*.exe
+
+# mathcad temporary files
+*.tmp

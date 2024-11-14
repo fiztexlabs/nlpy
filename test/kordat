@@ -1,0 +1,148 @@
+!!bb Task keys
+	restart = 0;
+	title = 'vb.036.003';
+	dt_max = 0.01;
+	dt_out = 1.0;
+	fin_tim = 600.0;
+	dt_sav = 1.0;
+	append_res = 1;
+	append_sav = 1;
+	check_only = 0;
+	local_err = 0.0001;
+	ngas = 'H2O, N2, H2, HE, O2';
+	dt_diag = 1.0;
+	inf = 1;
+	accel_stat = 0;
+	okbm = 1;
+	nwsp_dat = 'c:\codes\KORSAR\nwsp_dat';
+!!eb Task keys
+!!bb Global variables
+!!bb Properties 08X18H10T
+_tlam_08X18H10T(1:2,1:3) =
+	10.0,16.0,
+	100.0,18.0,
+	200.0,19.0;
+_thc_08X18H10T(1:2,1:3) =
+	10.0,465.0,
+	100.0,465.0,
+	200.0,465.0;
+_tro_08X18H10T(1:2,1:3) =
+	10.0,7850.0,
+	100.0,7850.0,
+	200.0,7850.0;
+!!eb Properties 08X18H10T
+!!bb Sensors tube1
+_sens_tube1(1:2)=0.;
+!!eb Sensors tube1
+!!eb Global variables
+MAIN:
+LAYOUT
+!!bb Lay tube1
+!!bb boundaries
+CH1/i - BVOL_T1;
+CH1/o - BVOL_T2;
+!!eb boundaries
+!!bb model
+CH1(1:5) - HCS1(1:5)/1;
+HCS1(1:5)/2 - BHEAT1;
+!!eb model
+!!eb Lay tube1
+END
+!!bb CALLs
+!!bb CALLs tube1
+CALL CH1;
+CALL HCS1;
+CALL BHEAT1;
+CALL BVOL_T1;
+CALL BVOL_T2;
+!!eb CALLs tube1
+!!eb CALLs
+!!bb SETs
+SET _CalcSensor;
+!!eb SETs
+!!bb OUTs
+	OUT _Out;
+!!eb OUTs
+END
+!!bb DATAs tube1
+DATA CH1
+	N = 5;
+	S=0.000120763;
+	PR(1:N)=
+		0.000120763,
+		0.000120763,
+		0.000120763,
+		0.000120763,
+		0.0120763;
+	DZ=2.49;
+	DH=2.49;
+	P=1000000.0;
+	T(1,1:N)=293.0;
+	T(2,1:N)=453.15;
+	VOID=0.0;
+	TYPE=0;
+	ROU=2e-05;
+END
+DATA HCS1
+	N = 5;
+	KL = 1;
+	K = 5;
+	TYPE = 0;
+	COOR = 1;
+	XL(1:KL+1)=
+		0.0062,
+		0.008;
+	X(1:K)=
+		0.0062,
+		0.00665,
+		0.0071,
+		0.00755,
+		0.008;
+	TLAM = 
+		$_tlam_08X18H10T;
+	THC = 
+		$_thc_08X18H10T;
+	TRO = 
+		$_tro_08X18H10T;
+	DFZ=0.30575;
+	B = 36.01482461;
+	NGE = 0;
+	KIND=
+		6,
+		4;
+END
+DATA BHEAT1
+	TYPE=3;
+	BCOND(1)=1.0;
+	BCOND(2)=293.0;
+END
+DATA BVOL_T1
+	P=1000000.0;
+	T(1)=293.0;
+	T(2)=453.15;
+	VOID=0.0;
+END
+DATA BVOL_T2
+	P=1000000.0;
+	T(1)=293.0;
+	T(2)=453.15;
+	VOID=0.0;
+END
+!!eb DATAs tube1
+EVENT _CalcSensor
+!!bb Sensors tube1
+_sens_tube1(1)=T.CH1(1,1);
+_sens_tube1(2)=P.CH1(1);
+!!eb Sensors tube1
+END
+!!bb OUTPUTs
+OUTPUT _Out
+WRITE
+	DT
+	,dt_out
+	,dt_max
+	,dt_sav
+	,restart
+	,_sens_tube1;
+END
+!!eb OUTPUTs
