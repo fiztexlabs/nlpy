@@ -12,13 +12,15 @@ class TJUN(Model):
         self.pipe2.bv2.disable()
 
         self.rebuild(
-            [],
-            [],
+            elements = [],
+            model_layout = [],
+            boundary_layout = [],
+            submodel_links_layout = 
             [
-                "CH{1}/o - CH{2}(2);",
+                "Tube2.CH1/o - Tube1.CH1(2);",
             ],
-            [],
-            [self.pipe1,self.pipe2]
+            sensors = [],
+            submodels = [self.pipe1,self.pipe2]
         )
 
 tjun = TJUN()

@@ -77,16 +77,18 @@ class Tube(Model):
         )
 
         self.rebuild(
-            [self.ch1, self.hcs1, self.bh, self.bv1, self.bv2],
-            [
+            elements = [self.ch1, self.hcs1, self.bh, self.bv1, self.bv2],
+            model_layout = [
                 "CH1(1:5) - HCS1(1:5)/1;",
                 "HCS1(1:5)/2 - BHEAT1;"
             ],
-            [
+            boundary_layout = [
                 "CH1/i - BVOL_T1;",
                 "CH1/o - BVOL_T2;"
             ],
-            [self.t_in,self.p_in]
+            sensors=[self.t_in,self.p_in],
+            submodels = [],
+            submodel_links_layout = []
         )
 
 

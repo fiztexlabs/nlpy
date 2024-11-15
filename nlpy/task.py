@@ -103,11 +103,12 @@ class Task:
         mats = []
         for m in self.models:
             m.rebuild(
-                copy.copy(m.all_elements), 
-                copy.copy(m.model_layout), 
-                copy.copy(m.boundary_layout), 
-                copy.copy(m.sensors), 
-                copy.copy(m.submodels)
+                elements=copy.copy(m.all_elements), 
+                model_layout=copy.copy(m.model_layout), 
+                boundary_layout=copy.copy(m.boundary_layout), 
+                sensors=copy.copy(m.sensors), 
+                submodels=copy.copy(m.submodels),
+                submodel_links_layout=copy.copy(m.submodel_links_layout)
             )
             for el in m.elements_submodels:
                 if el.is_enabled():

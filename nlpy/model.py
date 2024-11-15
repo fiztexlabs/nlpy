@@ -212,6 +212,7 @@ class Model:
         submodels = []
         boundary_layout = []
         model_layout = []
+        submodel_links_layout = []
         if 'boundary_layout' in kwargs:
             boundary_layout = kwargs['boundary_layout']
         if 'model_layout' in kwargs:
@@ -222,8 +223,17 @@ class Model:
             sensors = kwargs['sensors']
         if 'submodels' in kwargs:
             submodels = kwargs['submodels']
+        if 'submodel_links_layout' in kwargs:
+            submodel_links_layout = kwargs['submodel_links_layout']
 
-        self.rebuild(elements, model_layout, boundary_layout, sensors, submodels)
+        self.rebuild(
+            elements=elements, 
+            model_layout=model_layout, 
+            boundary_layout=boundary_layout, 
+            sensors=sensors, 
+            submodels=submodels,
+            submodel_links_layout=submodel_links_layout
+        )
 
     # def __copy_constructor__(self, orig):
     #     self.model_name = orig.model_name
@@ -238,13 +248,32 @@ class Model:
     #             'submodels': orig.submodels
     #         })
 
-    def __layout__(self, model_layout: List[str], boundary_layout: List[str]):
+    def __layout__(self, model_layout: List[str], boundary_layout: List[str], submodel_links_layout: List[str]):
         """
         Сгенерировать структуру модели для kordat
         """
         self.task_layout = []
         self.boundary_layout = boundary_layout
         self.model_layout = model_layout
+        self.submodel_links_layout = submodel_links_layout
+
+        # read links between submodels
+        links = copy.deepcopy(submodel_links_layout)
+        if len(links) > 0:
+            for line in links:
+                self.task_layout.append(line)
+                for sm in self.submodels:
+                    disabled_elements = 0
+                    for el in sm.all_elements:
+                        if sm.model_name_task+"."+el.el_type()+str(el.id_model) in line:
+                            self.task_layout[-1] = self.task_layout[-1].replace(sm.model_name_task+"."+el.el_type()+str(el.id_model), el.name())
+                            if not el.is_enabled():
+                                disabled_elements+=1
+                    if disabled_elements > 0:
+                        self.task_layout[-1] = "! "+self.task_layout[-1]
+
+        self.task_layout.insert(0,"!!bb link submodels")
+        self.task_layout.append("!!eb link submodels")
 
         layout = copy.deepcopy(boundary_layout)
         layout.insert(0, "!!bb boundaries")
@@ -523,16 +552,42 @@ class Model:
 
 
     def rebuild(
-            self, 
-            elements: List[Element], 
-            model_layout: List[str], 
-            boundary_layout: List[str], 
-            sensors: List[Sensor] = [],
-            submodels = []
+            self,
+            **kwargs
         ):
         """
-        Перестроить блоки LAYOUT, CALLs и DATA, а также датчики модели
+        Перестроить зону задания модели (блоки DATAs, CALLs, LAYOUT, OUTPUTs, а также сенсоры и процедуры)
+
+        Arguments
+        ----------
+        elements : List[Element]
+            Элементы модели
+
+        model_layout : List[str]
+            Структура модели
+
+        boundary_layout : List[str]
+            Структура ГУ модели
+
+        submodel_links_layout : List[str]
+            Структура соединений подмоделей
+
+        sensors : List[Model.Sensor]
+            Датчики
+            
+        submodels : List[Model]
+            Подмодели
+
         """
+        
+        elements = kwargs['elements']
+        model_layout = kwargs['model_layout']
+        boundary_layout = kwargs['boundary_layout']
+        submodel_links_layout = kwargs['submodel_links_layout']
+        sensors = kwargs['sensors']
+        submodels = kwargs['submodels']
+        
+        
         self.submodels = submodels
         self.elements = []
         self.all_elements = []
@@ -543,7 +598,7 @@ class Model:
         self.__outputs__ = []
         self.__monitors__ = []
 
-        if len(elements) > 0:
+        if len([elements]) > 0:
             i_ch = 1
             i_hcs = 1
             i_lr = 1
@@ -590,7 +645,7 @@ class Model:
         self.__data__.insert(0, "!!bb DATAs "+self.model_name_task)
         self.__data__.append("!!eb DATAs "+self.model_name_task)
 
-        self.__layout__(model_layout, boundary_layout)
+        self.__layout__(model_layout, boundary_layout, submodel_links_layout)
 
         self.__set_sensors__(sensors)
         if len(sensors)>0:
@@ -607,11 +662,12 @@ class Model:
         if len(submodels) > 0:
             for m in submodels:
                 m.rebuild(
-                    copy.copy(m.all_elements), 
-                    copy.copy(m.model_layout), 
-                    copy.copy(m.boundary_layout), 
-                    copy.copy(m.sensors), 
-                    copy.copy(m.submodels)
+                    elements=copy.copy(m.all_elements), 
+                    model_layout=copy.copy(m.model_layout), 
+                    boundary_layout=copy.copy(m.boundary_layout), 
+                    sensors=copy.copy(m.sensors), 
+                    submodels=copy.copy(m.submodels),
+                    submodel_links_layout=copy.copy(m.submodel_links_layout)
                 )
                 self.__calls__ = m.__calls__ + self.__calls__
                 self.__data__ = m.__data__ + self.__data__
