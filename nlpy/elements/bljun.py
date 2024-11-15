@@ -17,7 +17,7 @@ class BLJUN(Element):
 
     Methods
     ----------
-    rebuild_data_block
+    rebuild
         Перестраивает блок DATA элемента
     
     """
@@ -61,7 +61,7 @@ class BLJUN(Element):
     ):
         self.TYPE = np.array(fill_list_or_float(TYPE,1),dtype=int)
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         self.__data__ = []
         
         self.__data__.append("DATA "+self.__name__)

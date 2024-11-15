@@ -9,7 +9,7 @@ import numpy as np
 
 class Tube(Model):
     def __init__(self):
-        Model.__init__(self, name="tube")
+        Model.__init__(self, name="Tube")
 
         self.ch1 = CH(
             N = 5,
@@ -89,6 +89,9 @@ class Tube(Model):
 
 
 tube_model1 = Tube()
+from nlpy import write_data
+# write_data(tube_model1.__diarnostics__,"./diag1.txt")
 tube_model2 = Model(tube_model1)
+# write_data(tube_model2.__diarnostics__,"./diag2.txt")
 
 print('a')

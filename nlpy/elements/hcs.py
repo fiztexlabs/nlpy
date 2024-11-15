@@ -19,7 +19,7 @@ class HCS(Element):
 
     Methods
     ----------
-    rebuild_data_block
+    rebuild
         Перестраивает блок DATA элемента
     
     """
@@ -107,9 +107,9 @@ class HCS(Element):
         self.NGE = NGE
         self.KIND = KIND
         
-        self.rebuild_data_block()
+        self.rebuild()
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         self.__data__ = []
         
         self.__data__.append("DATA "+self.__name__)

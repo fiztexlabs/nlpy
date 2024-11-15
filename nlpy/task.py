@@ -67,6 +67,8 @@ class Task:
             '\taccel_stat = '+str(self.task_keys['accel_stat'])+";",
             '\tokbm = '+str(self.task_keys['okbm'])+";",
             '\tnwsp_dat = '+str(self.task_keys['nwsp_dat'])+";",
+            '\t_monPer = '+str(self.task_keys['_monPer'])+";",
+            '\t_diag = '+str(self.task_keys['_diag'])+";",
             "!!eb Task keys"
         ]
         self.__globals__ = []
@@ -82,6 +84,9 @@ class Task:
         self.__sensors__ = []
         
         self.__data__ = []
+        self.__dignostics__ = []
+        self.__monitors__ = []
+        self.__events__ = []
         self.__outputs__ = [
             "WRITE",
             "\tDT",
@@ -108,6 +113,13 @@ class Task:
             self.__globals__.extend(mat.__globals__)
 
 
+        self.__monitors__ = [
+            "EVENT _Monitors",
+            "\ttype = ALW;",
+            "\treplace = 1;",
+            "\tturn_on = 1;",
+            ""
+        ]
 
         for m in self.models:
             self.__globals__.extend(m.task_sensors_def)
@@ -115,8 +127,44 @@ class Task:
             self.__calls__.extend(m.__calls__)
             self.__layout__.extend(m.task_layout)
             self.__data__.extend(m.__data__)
+            self.__dignostics__.extend(m.__diarnostics__)
+            if not m.mon_per is None:
+                self.__monitors__.append("\tCALL _Monitor"+m.model_name_task+"("+str(m.mon_per)+");")
+            else:
+                self.__monitors__.append("\tCALL _Monitor"+m.model_name_task+"(_monPer);")
             self.__outputs__.append("\t,"+"_sens_"+m.model_name_task)
+            self.__sets__.extend(m.__sets__)
 
+        self.__monitors__.append("END")
+
+        self.__globals__.extend([
+            "!!bb General variables",
+            "_t0C = 273.15;",
+            "_tOffset = _t0C;",
+            "_pi = 3.1415927;",
+            "_gg = 9.81;",
+            "_xgAir(1:4) = 0.,0.,0.757,0.243;",
+            "_xgN2(1:4) = 0.,0.,9.999e-1,0.;",
+            "_pAtm = 101.3e+03;",
+            "_tAtm = 20.+_tOffset;",
+            "_tsAtm = WS1P1(1,'P',_pAtm,2);",
+            "_kgs = 98066.5;  ! кгс/см2, Па",
+            "_MPa = 1.e6; ! МПа, Па",
+            "_kPa = 1.e3; ! МПа, Па",
+            "_MWt = 1.e6; ! МПа, Па",
+            "_kWt = 1.e3; ! МПа, Па",
+            "_atm = 101325.; ! атм, Па",
+            "_bar = 1.e5; ! бар, Па",
+            "_i = 0;",
+            "_j = 0;",
+            "_m = 0;",
+            "_n = 0;",
+            "_k = 0;",
+            "_x = 0.;",
+            "_y = 0.;",
+            "_z = 0.;",
+            "!!eb General variables",
+        ])
         self.__globals__.insert(0, "!!bb Global variables")
         self.__globals__.append("!!eb Global variables")
         self.__calls__.insert(0, "!!bb CALLs")
@@ -125,6 +173,7 @@ class Task:
         self.__layout__.append("END")
         
         self.__sets__.append("SET _CalcSensor;")
+        self.__sets__.append("SET _Monitors;")
         self.__sets__.insert(0, "!!bb SETs")
         self.__sets__.append("!!eb SETs")
 
@@ -138,6 +187,9 @@ class Task:
         self.__sensors__.insert(0,"EVENT _CalcSensor")
         self.__sensors__.append("END")
 
+        self.__dignostics__.insert(0, "!!bb Diagnostics")
+        self.__dignostics__.append("!!eb Diagnostics")
+
         self.__outputs__[-1] = self.__outputs__[-1]+";"
         self.__outputs__.insert(0,"OUTPUT _Out")
         self.__outputs__.append("END")
@@ -150,6 +202,8 @@ class Task:
         self.kordat.extend(self.__globals__)
         self.kordat.extend(self.__main__)
         self.kordat.extend(self.__data__)
+        self.kordat.extend(self.__dignostics__)
+        self.kordat.extend(self.__monitors__)
         self.kordat.extend(self.__sensors__)
         self.kordat.extend(self.__outputs__)
 

@@ -29,7 +29,7 @@ class SMASS_T(Element):
 
     Methods
     ----------
-    rebuild_data_block
+    rebuild
         Перестраивает блок DATA элемента
     
     """
@@ -88,9 +88,9 @@ class SMASS_T(Element):
         self.GMOUT = np.array(fill_list_or_float(GMOUT,1),dtype=float)
         self.EHIN1 = np.array(fill_list_or_float(EHIN1,1),dtype=float)
         self.EHIN2 = np.array(fill_list_or_float(EHIN2,1),dtype=float)
-        self.rebuild_data_block()
+        self.rebuild()
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         self.__data__ = []
         
         self.__data__.append("DATA "+self.__name__)

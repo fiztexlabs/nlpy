@@ -47,7 +47,7 @@ class CH(Element):
 
     Methods
     ----------
-    rebuild_data_block
+    rebuild
         Перестраивает блок DATA элемента
     
     """
@@ -131,9 +131,9 @@ class CH(Element):
         self.TYPE = np.array(fill_list_or_float(TYPE,self.N),dtype=int)
         self.ROU = np.array(fill_list_or_float(ROU,self.N),dtype=float)
 
-        self.rebuild_data_block()
+        self.rebuild()
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         self.__data__ = []
 
         self.__data__.append("DATA "+self.__name__)
@@ -151,6 +151,8 @@ class CH(Element):
         self.__data__.extend(fill_korsar_array(self.ROU, "ROU"))
 
         self.__data__.append("END")
+
+
 
 
 

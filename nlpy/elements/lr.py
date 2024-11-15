@@ -20,7 +20,7 @@ class LR(Element):
 
     Methods
     ----------
-    rebuild_data_block
+    rebuild
         Перестраивает блок DATA элемента
     
     """
@@ -67,9 +67,9 @@ class LR(Element):
     ):
         self.CSI1 = np.array(fill_list_or_float(CSI1,1),dtype=float)
         self.CSI2 = np.array(fill_list_or_float(CSI2,1),dtype=float)
-        self.rebuild_data_block()
+        self.rebuild()
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         self.__data__ = []
         
         self.__data__.append("DATA "+self.__name__)

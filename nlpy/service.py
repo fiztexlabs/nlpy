@@ -51,7 +51,8 @@ def fill_list_or_float(var: Union[float, int, np.ndarray], N: int = None) -> np.
 def fill_korsar_array(
     var: np.ndarray, 
     var_name: str,
-    numel: str = "(1:N)", 
+    numel: str = "(1:N)",
+    assign: str = "=", 
     tab: str = "\t") -> List[str]:
     """
     Преобразовать входной массив var в список строк для kordat
@@ -67,6 +68,9 @@ def fill_korsar_array(
     numel : str
         Границы диапазона (например, (1:N))
 
+    assign : str
+        Присваивание (= или :=)
+
     tab : str
         Символы отступа, которые вставляются перед значениями
         
@@ -78,9 +82,9 @@ def fill_korsar_array(
 
     data = []
     if np.all(var == var[0]):
-        data.append(tab+var_name+"="+str(var[0])+";")
+        data.append(tab+var_name+assign+str(var[0])+";")
     else:
-        data.append(tab+var_name+numel+"=")
+        data.append(tab+var_name+numel+assign)
         for v in var:
             data.append(tab+'\t'+str(v)+",")
         data[-1] = tab+'\t'+str(var[-1])+";"

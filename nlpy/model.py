@@ -3,6 +3,7 @@ from typing import List
 from itertools import count
 import copy
 
+from .service import*
 from .elements import Element
 from .elements import CH
 from .elements import HCS
@@ -21,6 +22,9 @@ class Model:
     ----------
     id : int
         ID модели (для идентификации нескольких однотипных моделей)
+
+    mon_per : float
+        Период обновление мониторов модели
 
     model_name : str
         имя модели
@@ -159,6 +163,8 @@ class Model:
         self.id = next(self._ids)
         self.Sensor._ids = count(1)
 
+        self.mon_per = None
+
         self.all_elements = []
         self.elements = []
         self.model_layout = []
@@ -171,6 +177,7 @@ class Model:
         self.active_sensors = []
 
         self.__calls__ = []
+        self.__sets__ = []
         self.__data__ = []
         self.__sensors__ = []
         self.__sens_eval__ = []
@@ -184,7 +191,6 @@ class Model:
             self.__constructor__(kwargs)
         else:
             self.__copy_constructor__(orig)
-
 
     def __constructor__(self, kwargs):
         elements = []
@@ -201,7 +207,6 @@ class Model:
             sensors = kwargs['sensors']
 
         self.rebuild(elements, model_layout, boundary_layout, sensors)
-        
 
     def __copy_constructor__(self, orig):
         self.model_name = orig.model_name
@@ -279,6 +284,220 @@ class Model:
             self.task_sensors_def.append("_sens_"+self.model_name_task+"(1:"+str(next(copy.copy(self.Sensor._ids))-1)+")=0.;")
             self.task_sensors_def.append("!!eb Sensors "+self.model_name_task)
 
+    def __ch_compiletime_diag__(self):
+        if len(self.ch) > 0:
+            task_ch_nums = []
+            model_ch_nums = []
+            ch_cells_nums = []
+            for ch in self.ch:
+                model_ch_nums.append(ch.id_model)
+                task_ch_nums.append(ch.id)
+                ch_cells_nums.append(ch.N)
+
+            self.__compiletime_diarnostics__.extend(fill_korsar_array(
+                task_ch_nums, 
+                "_ch"+self.model_name_task,
+                "(1:"+str(len(task_ch_nums))+")",
+                ":=",
+                "\t\t"
+            ))
+            self.__compiletime_diarnostics__.extend(fill_korsar_array(
+                model_ch_nums, 
+                "_chLay"+self.model_name_task,
+                "(1:"+str(len(model_ch_nums))+")",
+                ":=",
+                "\t\t"
+            ))
+            self.__compiletime_diarnostics__.extend(fill_korsar_array(
+                ch_cells_nums, 
+                "_chN"+self.model_name_task,
+                "(1:"+str(len(ch_cells_nums))+")",
+                ":=",
+                "\t\t"
+            ))
+
+            self.__compiletime_diarnostics__.extend(
+                [
+                    "\t\tPRINT '*** CH DATA "+self.model_name_task+" ***';",
+                    "\t\tDO _i=1,"+str(len(self.ch))+";",
+                    "\t\t\t_m=_ch"+self.model_name_task+"(_i);",
+                    "\t\t\t_n=_chLay"+self.model_name_task+"(_i);",
+                    "\t\t\tPRINT '- CH',_m,' in model "+self.model_name_task+" ',_n;",
+                    "\t\t\t! Геометрия каналов",
+                    "\t\t\t_fullLen := 0.; _fullLen = 0.;  ! Full length\t ",
+                    "\t\t\t_fullHgt := 0.; _fullHgt = 0.;  ! Full height dif",
+                    "\t\t\t_fullVol := 0.; _fullVol = 0.;  ! Full volume\t ",
+                    "\t\t\tPRINT 'Cl','----- DZ ------','----- DH ------','----- V -------',",
+                    "\t\t\t\t'----- PR ------';",
+                    "\t\t\tDO _j=1,N.CH(_m);",
+                    "\t\t\t\t_fullLen = _fullLen + DZ.CH(_m)(_j);",
+                    "\t\t\t\t_fullHgt = _fullHgt + DH.CH(_m)(_j);",
+                    "\t\t\t\t_fullVol = _fullVol + V.CH(_m)(_j);",
+                    "\t\t\t\tPRINT _j,DZ.CH(_m)(_j),DH.CH(_m)(_j),V.CH(_m)(_j),PR.CH(_m)(_j);",
+                    "\t\t\tENDDO",
+                    "\t\t\tPRINT 'Cl','----- S -------','----- D -------','---- Type -----',",
+                    "\t\t\t\t'----- DэквS ---';",
+                    "\t\t\tDO _j=1,N.CH(_m);",
+                    "\t\t\t\tPRINT _j,S.CH(_m)(_j),D.CH(_m)(_j),TYPE.CH(_m)(_j),'\t\t\t\t ',",
+                    "\t\t\t\t ((4*S.CH(_m)(_j))/_pi)**0.5;",
+                    "\t\t\tENDDO",
+                    "\t\t\tPRINT 'Jc','---- DZJ ------','---- SJ -------','---- JUN ------',",
+                    "\t\t\t\t'---- DэквSJ ---';",
+                    "\t\t\tDO _j=1,N.CH(_m)+1;",
+                    "\t\t\t\tPRINT _j,DZJ.CH(_m)(_j),SJ.CH(_m)(_j),JUN.CH(_m)(_j),'\t\t\t\t ',",
+                    "\t\t\t\t ((4*SJ.CH(_m)(_j))/_pi)**0.5;",
+                    "\t\t\tENDDO",
+                    "\t\t\tIF _diag > 1 THEN ! вывод исходных значений",
+                    "\t\t\t\tPRINT 'Cl','----- P -------','----- T1 ------','---- T2 -------';",
+                    "\t\t\t\tDO _j=1,N.CH(_m);",
+                    "\t\t\t\t PRINT _j,P.CH(_m)(_j),T.CH(_m)(1,_j)-_tOffset,",
+                    "\t\t\t\t\tT.CH(_m)(2,_j)-_tOffset;",
+                    "\t\t\t\tENDDO",
+                    "\t\t\t\tPRINT 'Cl','----- VOID ----','----- XNG3 ----','---- XNG4 -----';",
+                    "\t\t\t\tDO _j=1,N.CH(_m);",
+                    "\t\t\t\t\tPRINT _j,VOID.CH(_m)(_j),XNG.CH(_m)(3,_j),XNG.CH(_m)(4,_j);",
+                    "\t\t\t\tENDDO",
+                    "\t\t\t\tPRINT 'Cl','----- XNF3 ----','---- XNF4 -----','---------------';",
+                    "\t\t\t\tDO _j=1,N.CH(_m);",
+                    "\t\t\t\t\tPRINT _j,XNF.CH(_m)(3,_j),XNF.CH(_m)(4,_j);",
+                    "\t\t\t\tENDDO",
+                    "\t\t\tENDIF",
+                    "\t\t\tPRINT '---------------------------------------------------';",
+                    "\t\t\tPRINT 'Full length\t ',_fullLen;",
+                    "\t\t\tPRINT 'Full height dif',_fullHgt;",
+                    "\t\t\tPRINT 'Full volume\t ',_fullVol;",
+                    "\t\tENDDO",
+                    "\t\tPRINT ' ';"
+                ]
+            )
+
+    def __ch_runtime_diag__(self):
+        self.__runtime_diarnostics__.extend([
+            "\t\tPRINT '=== CH DATA "+self.model_name_task+" ===';",
+            "\t\tDO _i=1,"+str(len(self.ch))+";",
+            "\t\t\t_k=_ch"+self.model_name_task+"(_i);",
+            "\t\t\t_n=_chLay"+self.model_name_task+"(_i);",
+            "\t\t\tPRINT ' TAU = ',TAU,'\tDT = ',DT;",
+            "\t\t\tPRINT '- CH',_k,' in model "+self.model_name_task+"',_n;",
+            "\t\t\tPRINT 'Cl','----- P -------','---- VOID -----','---- T1 -------',",
+            "\t\t\t\t'---- DEN1 ------';",
+            "\t\t\t_mCh := 0.; _mCh = 0.;",
+            "\t\t\tDO _j=1,N.CH(_k);",
+            "\t\t\t\t! Расчет массы канала",
+            "\t\t\t\t_mCh = _mCh + ",
+            "\t\t\t\t\tV.CH(_k)(_j)*( VOID.CH(_k)(_j)*DEN.CH(_k)(2,_j) + ",
+            "\t\t\t\t\t(1.-VOID.CH(_k)(_j))*DEN.CH(_k)(1,_j) );",
+            "\t\t\t\tPRINT _j,P.CH(_k)(_j),VOID.CH(_k)(_j),T.CH(_k)(1,_j)-_tOffset,",
+            "\t\t\t\t\tDEN.CH(_k)(1,_j);",
+            "\t\t\tENDDO",
+            "\t\t\tPRINT 'Cl','---- T2 -------','---- DEN2 ------','---- XNG3 -----',",
+            "\t\t\t\t'---- XNG4 -----';",
+            "\t\t\tDO _j=1,N.CH(_k);",
+            "\t\t\t\tPRINT _j,T.CH(_k)(2,_j)-_tOffset,DEN.CH(_k)(2,_j),XNG.CH(_k)(3,_j),",
+            "\t\t\t\t\tXNG.CH(_k)(4,_j);",
+            "\t\t\tENDDO",
+            "\t\t\tPRINT 'Jc','---- CFLw -----','---- CFLs -----';",
+            "\t\t\tDO _j=1,N.CH(_k)+1;",
+            "\t\t\t\tIF(\"($W.CH(_k)(1,_j),1) < -1.e-13 | ",
+            "\t\t\t\t\t\"($W.CH(_k)(1,_j),1) > 1.e-13) THEN",
+            "\t\t\t\t\t_x = DT*W.CH(_k)(1,_j)/DZJ.CH(_k)(_j);",
+            "\t\t\t\tELSE",
+            "\t\t\t\t\t_x = -888.;",
+            "\t\t\t\tENDIF",
+            "\t\t\t\tIF(\"($W.CH(_k)(2,_j),2) < -1e-13 | ",
+            "\t\t\t\t\t\"($W.CH(_k)(2,_j),2) > 1e-13) THEN",
+            "\t\t\t\t\t_y = DT*W.CH(_k)(2,_j)/DZJ.CH(_k)(_j);",
+            "\t\t\t\tELSE",
+            "\t\t\t\t\t_y = -888.;",
+            "\t\t\t\tENDIF",
+            "\t\t\t\tPRINT _j,_x,_y;",
+            "\t\t\tENDDO",
+            "\t\t\tPRINT 'Jc','---- Gwater ---','---- Gsteam ---','---- Gmix -----',",
+            "\t\t\t\t'---- FRWw -----';",
+            "\t\t\tDO _j=1,N.CH(_k)+1;",
+            "\t\t\t\tPRINT _j,\"($W.CH(_k)(1,_j),1),\"($W.CH(_k)(2,_j),2),",
+            "\t\t\t\t\t\"($W.CH(_k)(1,_j),1) + \"($W.CH(_k)(2,_j),2),",
+            "\t\t\t\t\tW.CH(_k)(1,_j)*FRW.CH(_k)(1,_j);",
+            "\t\t\tENDDO",
+            "\t\t\tPRINT 'Jc','---- Wwater ---','---- Wsteam ---','---- MAPJ -----',",
+            "\t\t\t\t'---- FRWs -----';",
+            "\t\t\tDO _j=1,N.CH(_k)+1;",
+            "\t\t\t\tPRINT _j,W.CH(_k)(1,_j),W.CH(_k)(2,_j),MAPJ.CH(_k)(_j),",
+            "\t\t\t\t\t'\t\t\t\t\t\t\t',W.CH(_k)(2,_j)*FRW.CH(_k)(2,_j);",
+            "\t\t\tENDDO",
+            "\t\t\tPRINT '-- Mass CH = ',_mCh;",
+            "\t\tENDDO\t",
+            "\t\tPRINT ' ';"
+        ])
+
+    def __set__compiletime_diagnostics__(self):
+
+        self.__compiletime_diarnostics__ = [
+            "\t! Диагностика геометрии",
+            "\tIF first THEN",
+            "\t\tfirst = 0;",
+            "\t\t_cntr := 0.;",
+            "\t\tPRINT '*** Сводные данные по "+self.model_name_task+" ***';",
+            "\t\tPRINT '=== MODEL "+self.model_name_task+" GEOMETRY DIAGNOSTICS ===';",
+        ]
+        
+        self.__ch_compiletime_diag__()
+        
+        self.__compiletime_diarnostics__.extend([
+            "\t\tPRINT '=== MODEL "+self.model_name_task+" GEOMETRY DIAGNOSTICS END ===';",
+            "\tENDIF"
+        ])
+
+    def __set__runtime_diagnostics__(self):
+        self.__runtime_diarnostics__ = [
+            "",
+            "\t! инкремент счетчика",
+            "\tIF _cntr<=_dt"+self.model_name_task+" THEN",
+            "\t\t_cntr = _cntr+DT;",
+            "\tELSE",
+            "\t\t_cntr = 0.;",
+            "\tENDIF",
+            "",
+            "\tIF _cntr==0. THEN ! выполнение процедуры",
+            "\t\tPRINT '=== MODEL "+self.model_name_task+" CALCULATION DIAGNOSTICS ===';",
+            "\t\tPRINT 'TAU = ',TAU,'  DT = ',DT;",
+        ]
+
+        self.__ch_runtime_diag__()
+
+        self.__runtime_diarnostics__.append("\tENDIF")
+
+    def __set_diagnostics__(self):
+        self.__sets__.append("SET "+"_Monitor"+self.model_name_task+";")
+
+        self.__diarnostics__ = [            
+            "EVENT _Monitor"+self.model_name_task+"(_dt"+self.model_name_task+")",
+            "\treplace = 1;",
+            "\tturn_on = 1;"
+        ]
+
+        self.ch = []
+        self.hcs = []
+        self.lr = []
+        for el in self.elements:
+            if el.el_type() == "CH":
+                self.ch.append(el)
+            if el.el_type() == "HCS":
+                self.hcs.append(el)
+            if el.el_type() == "LR":
+                self.lr.append(el)
+
+        self.__set__compiletime_diagnostics__()
+
+        self.__diarnostics__.extend(self.__compiletime_diarnostics__)
+
+        self.__set__runtime_diagnostics__()
+
+        self.__diarnostics__.extend(self.__runtime_diarnostics__)
+
+        self.__diarnostics__.extend(["END"])
+
+
     def rebuild(self, elements: List[Element], model_layout: List[str], boundary_layout: List[str], sensors: List[Sensor] = []):
         """
         Перестроить блоки LAYOUT, CALLs и DATA, а также датчики модели
@@ -288,6 +507,7 @@ class Model:
 
         self.__calls__ = []
         self.__data__ = []
+        self.__sets__ = []
 
         if len(elements) > 0:
             i_ch = 1
@@ -337,5 +557,9 @@ class Model:
 
         self.__layout__(model_layout, boundary_layout)
         self.__set_sensors__(sensors)
+
+        self.__set_diagnostics__()
+        self.__sets__.insert(0, "!!bb SETs "+self.model_name_task)
+        self.__sets__.append("!!eb SETs "+self.model_name_task)
 
     

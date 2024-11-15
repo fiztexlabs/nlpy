@@ -26,8 +26,10 @@ test = Task(
     accel_stat = 0,
     okbm = 1,
     # nwsp_dat = "\'n:\\Dep49\\Common\\MCD\\Utils\\KORSAR-KUPOL\\nwsp_dat\'"
-    nwsp_dat = "\'c:\\codes\\KORSAR\\nwsp_dat\'"
+    nwsp_dat = "\'c:\\codes\\KORSAR\\nwsp_dat\'",
+    _monPer = 2.,
+    _diag = 2.
 )
 
-test.write_kordat("./kordat")
+test.write_kordat("./kortest/kordat")
 

@@ -23,7 +23,7 @@ class BHEAT(Element):
 
     Methods
     ----------
-    rebuild_data_block
+    rebuild
         Перестраивает блок DATA элемента
     
     """
@@ -74,9 +74,9 @@ class BHEAT(Element):
         self.TYPE = np.array(fill_list_or_float(TYPE,1),dtype=int)
         self.BCOND1 = np.array(fill_list_or_float(BCOND1,1),dtype=float)
         self.BCOND2 = np.array(fill_list_or_float(BCOND2,1),dtype=float)
-        self.rebuild_data_block()
+        self.rebuild()
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         self.__data__ = []
         
         self.__data__.append("DATA "+self.__name__)

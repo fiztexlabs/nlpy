@@ -81,9 +81,9 @@ class BVOL_T(Element):
         self.T1 = np.array(fill_list_or_float(T1,1),dtype=float)
         self.T2 = np.array(fill_list_or_float(T2,1),dtype=float)
         self.VOID = np.array(fill_list_or_float(VOID,1),dtype=float)
-        self.rebuild_data_block()
+        self.rebuild()
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         self.__data__ = []
         
         self.__data__.append("DATA "+self.__name__)

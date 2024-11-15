@@ -107,9 +107,9 @@ class Element:
         """
         return self.__model_name__
 
-    def rebuild_data_block(self):
+    def rebuild(self):
         """
-        Перестроить блок DATA элемента
+        Перестроить kordat элемента
         """
         raise NotImplementedError()
 
