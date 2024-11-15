@@ -102,8 +102,14 @@ class Task:
         # find same materials
         mats = []
         for m in self.models:
-            m.rebuild(copy.copy(m.elements), copy.copy(m.model_layout), copy.copy(m.boundary_layout))
-            for el in m.elements:
+            m.rebuild(
+                copy.copy(m.all_elements), 
+                copy.copy(m.model_layout), 
+                copy.copy(m.boundary_layout), 
+                copy.copy(m.sensors), 
+                copy.copy(m.submodels)
+            )
+            for el in m.elements_submodels:
                 if el.is_enabled():
                     if el.el_type() == "HCS":
                         mats.extend(el.MAT)
@@ -127,12 +133,15 @@ class Task:
             self.__calls__.extend(m.__calls__)
             self.__layout__.extend(m.task_layout)
             self.__data__.extend(m.__data__)
-            self.__dignostics__.extend(m.__diarnostics__)
-            if not m.mon_per is None:
-                self.__monitors__.append("\tCALL _Monitor"+m.model_name_task+"("+str(m.mon_per)+");")
-            else:
-                self.__monitors__.append("\tCALL _Monitor"+m.model_name_task+"(_monPer);")
-            self.__outputs__.append("\t,"+"_sens_"+m.model_name_task)
+            self.__dignostics__.extend(m.__diagnostics__)
+            self.__monitors__.extend(m.__monitors__)
+            # if not m.mon_per is None:
+            #     self.__monitors__.append("\tCALL _Monitor"+m.model_name_task+"("+str(m.mon_per)+");")
+            # else:
+            #     self.__monitors__.append("\tCALL _Monitor"+m.model_name_task+"(_monPer);")
+            # if len(m.sensors)>0:
+            #     self.__outputs__.append("\t,"+"_sens_"+m.model_name_task)
+            self.__outputs__.extend(m.__outputs__)
             self.__sets__.extend(m.__sets__)
 
         self.__monitors__.append("END")

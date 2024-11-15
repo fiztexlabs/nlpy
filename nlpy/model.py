@@ -37,6 +37,12 @@ class Model:
 
     all_elements : List[Element]
         все элементы модели (активные и неактивные)
+
+    elements_submodels : List[Element]
+        Активные элементы модели, включая элементы подмоделей
+
+    submodels : List[Model]
+        Подмодели
         
     boundary_layout : List[str]
         структура граничных условий модели модели (в нумерации модели)
@@ -52,8 +58,6 @@ class Model:
     rebuild
         Перестраивает блок DATA элемента
     """
-
-    _ids = count(1)
 
     class Sensor:
         """
@@ -127,7 +131,7 @@ class Model:
 
     def __init__(
         self,
-        orig = None,
+        # orig = None,
         **kwargs
         ):
         """
@@ -160,13 +164,14 @@ class Model:
             Активные датчики модели (в нумерации задачи)
 
         """
-        self.id = next(self._ids)
+        
         self.Sensor._ids = count(1)
 
         self.mon_per = None
 
         self.all_elements = []
         self.elements = []
+        self.elements_submodels = []
         self.model_layout = []
         self.boundary_layout = []
         self.task_layout = []
@@ -182,19 +187,29 @@ class Model:
         self.__sensors__ = []
         self.__sens_eval__ = []
 
-        if orig is None:
-            if kwargs['name'] == "":
-                self.model_name = "Mdl"
-            else:
-                self.model_name = kwargs['name']
-            self.model_name_task = self.model_name+str(self.id)
-            self.__constructor__(kwargs)
+        self.id = kwargs['id']
+        if kwargs['name'] == "":
+            self.model_name = "Mdl"
         else:
-            self.__copy_constructor__(orig)
+            self.model_name = kwargs['name']
+        self.model_name_task = self.model_name+str(self.id)
+        self.__constructor__(kwargs)
+
+        # if orig is None:
+        #     self.id = kwargs['id']
+        #     if kwargs['name'] == "":
+        #         self.model_name = "Mdl"
+        #     else:
+        #         self.model_name = kwargs['name']
+        #     self.model_name_task = self.model_name+str(self.id)
+        #     self.__constructor__(kwargs)
+        # else:
+        #     self.__copy_constructor__(orig)
 
     def __constructor__(self, kwargs):
         elements = []
         sensors = []
+        submodels = []
         boundary_layout = []
         model_layout = []
         if 'boundary_layout' in kwargs:
@@ -205,19 +220,23 @@ class Model:
             elements = kwargs['elements']
         if 'sensors' in kwargs:
             sensors = kwargs['sensors']
+        if 'submodels' in kwargs:
+            submodels = kwargs['submodels']
 
-        self.rebuild(elements, model_layout, boundary_layout, sensors)
+        self.rebuild(elements, model_layout, boundary_layout, sensors, submodels)
 
-    def __copy_constructor__(self, orig):
-        self.model_name = orig.model_name
-        self.model_name_task = self.model_name+str(self.id)
-        self.__constructor__(
-            {
-                'elements' : [eval(el.el_type()+"(el)") for el in orig.elements],
-                'model_layout' : orig.model_layout,
-                'boundary_layout' : orig.boundary_layout,
-                'sensors' : orig.sensors
-            })
+    # def __copy_constructor__(self, orig):
+    #     self.model_name = orig.model_name
+    #     self.model_name_task = self.model_name+str(self.id)
+    #     self.id = next(orig.ids)
+    #     self.__constructor__(
+    #         {
+    #             'elements' : [eval(el.el_type()+"(el)") for el in orig.elements],
+    #             'model_layout' : orig.model_layout,
+    #             'boundary_layout' : orig.boundary_layout,
+    #             'sensors' : orig.sensors,
+    #             'submodels': orig.submodels
+    #         })
 
     def __layout__(self, model_layout: List[str], boundary_layout: List[str]):
         """
@@ -252,6 +271,10 @@ class Model:
     def __set_sensors__(self, sensors: List[Sensor]):
         self.sensors = sensors
         self.active_sensors = []
+        self.task_sensors_eval = []
+        self.task_sensors_def = []
+        self.__sensors__ = []
+        self.__sens_eval__ = []
 
         if len(self.sensors) > 0:
             # fill sensor's array
@@ -294,21 +317,21 @@ class Model:
                 task_ch_nums.append(ch.id)
                 ch_cells_nums.append(ch.N)
 
-            self.__compiletime_diarnostics__.extend(fill_korsar_array(
+            self.__compiletime_diagnostics__.extend(fill_korsar_array(
                 task_ch_nums, 
                 "_ch"+self.model_name_task,
                 "(1:"+str(len(task_ch_nums))+")",
                 ":=",
                 "\t\t"
             ))
-            self.__compiletime_diarnostics__.extend(fill_korsar_array(
+            self.__compiletime_diagnostics__.extend(fill_korsar_array(
                 model_ch_nums, 
                 "_chLay"+self.model_name_task,
                 "(1:"+str(len(model_ch_nums))+")",
                 ":=",
                 "\t\t"
             ))
-            self.__compiletime_diarnostics__.extend(fill_korsar_array(
+            self.__compiletime_diagnostics__.extend(fill_korsar_array(
                 ch_cells_nums, 
                 "_chN"+self.model_name_task,
                 "(1:"+str(len(ch_cells_nums))+")",
@@ -316,7 +339,7 @@ class Model:
                 "\t\t"
             ))
 
-            self.__compiletime_diarnostics__.extend(
+            self.__compiletime_diagnostics__.extend(
                 [
                     "\t\tPRINT '*** CH DATA "+self.model_name_task+" ***';",
                     "\t\tDO _i=1,"+str(len(self.ch))+";",
@@ -372,105 +395,106 @@ class Model:
             )
 
     def __ch_runtime_diag__(self):
-        self.__runtime_diarnostics__.extend([
-            "\t\tPRINT '=== CH DATA "+self.model_name_task+" ===';",
-            "\t\tDO _i=1,"+str(len(self.ch))+";",
-            "\t\t\t_k=_ch"+self.model_name_task+"(_i);",
-            "\t\t\t_n=_chLay"+self.model_name_task+"(_i);",
-            "\t\t\tPRINT ' TAU = ',TAU,'\tDT = ',DT;",
-            "\t\t\tPRINT '- CH',_k,' in model "+self.model_name_task+"',_n;",
-            "\t\t\tPRINT 'Cl','----- P -------','---- VOID -----','---- T1 -------',",
-            "\t\t\t\t'---- DEN1 ------';",
-            "\t\t\t_mCh := 0.; _mCh = 0.;",
-            "\t\t\tDO _j=1,N.CH(_k);",
-            "\t\t\t\t! Расчет массы канала",
-            "\t\t\t\t_mCh = _mCh + ",
-            "\t\t\t\t\tV.CH(_k)(_j)*( VOID.CH(_k)(_j)*DEN.CH(_k)(2,_j) + ",
-            "\t\t\t\t\t(1.-VOID.CH(_k)(_j))*DEN.CH(_k)(1,_j) );",
-            "\t\t\t\tPRINT _j,P.CH(_k)(_j),VOID.CH(_k)(_j),T.CH(_k)(1,_j)-_tOffset,",
-            "\t\t\t\t\tDEN.CH(_k)(1,_j);",
-            "\t\t\tENDDO",
-            "\t\t\tPRINT 'Cl','---- T2 -------','---- DEN2 ------','---- XNG3 -----',",
-            "\t\t\t\t'---- XNG4 -----';",
-            "\t\t\tDO _j=1,N.CH(_k);",
-            "\t\t\t\tPRINT _j,T.CH(_k)(2,_j)-_tOffset,DEN.CH(_k)(2,_j),XNG.CH(_k)(3,_j),",
-            "\t\t\t\t\tXNG.CH(_k)(4,_j);",
-            "\t\t\tENDDO",
-            "\t\t\tPRINT 'Jc','---- CFLw -----','---- CFLs -----';",
-            "\t\t\tDO _j=1,N.CH(_k)+1;",
-            "\t\t\t\tIF(\"($W.CH(_k)(1,_j),1) < -1.e-13 | ",
-            "\t\t\t\t\t\"($W.CH(_k)(1,_j),1) > 1.e-13) THEN",
-            "\t\t\t\t\t_x = DT*W.CH(_k)(1,_j)/DZJ.CH(_k)(_j);",
-            "\t\t\t\tELSE",
-            "\t\t\t\t\t_x = -888.;",
-            "\t\t\t\tENDIF",
-            "\t\t\t\tIF(\"($W.CH(_k)(2,_j),2) < -1e-13 | ",
-            "\t\t\t\t\t\"($W.CH(_k)(2,_j),2) > 1e-13) THEN",
-            "\t\t\t\t\t_y = DT*W.CH(_k)(2,_j)/DZJ.CH(_k)(_j);",
-            "\t\t\t\tELSE",
-            "\t\t\t\t\t_y = -888.;",
-            "\t\t\t\tENDIF",
-            "\t\t\t\tPRINT _j,_x,_y;",
-            "\t\t\tENDDO",
-            "\t\t\tPRINT 'Jc','---- Gwater ---','---- Gsteam ---','---- Gmix -----',",
-            "\t\t\t\t'---- FRWw -----';",
-            "\t\t\tDO _j=1,N.CH(_k)+1;",
-            "\t\t\t\tPRINT _j,\"($W.CH(_k)(1,_j),1),\"($W.CH(_k)(2,_j),2),",
-            "\t\t\t\t\t\"($W.CH(_k)(1,_j),1) + \"($W.CH(_k)(2,_j),2),",
-            "\t\t\t\t\tW.CH(_k)(1,_j)*FRW.CH(_k)(1,_j);",
-            "\t\t\tENDDO",
-            "\t\t\tPRINT 'Jc','---- Wwater ---','---- Wsteam ---','---- MAPJ -----',",
-            "\t\t\t\t'---- FRWs -----';",
-            "\t\t\tDO _j=1,N.CH(_k)+1;",
-            "\t\t\t\tPRINT _j,W.CH(_k)(1,_j),W.CH(_k)(2,_j),MAPJ.CH(_k)(_j),",
-            "\t\t\t\t\t'\t\t\t\t\t\t\t',W.CH(_k)(2,_j)*FRW.CH(_k)(2,_j);",
-            "\t\t\tENDDO",
-            "\t\t\tPRINT '-- Mass CH = ',_mCh;",
-            "\t\tENDDO\t",
-            "\t\tPRINT ' ';"
-        ])
+        if len(self.ch) > 0:
+            self.__runtime_diagnostics__.extend([
+                "\t\tPRINT '=== CH DATA "+self.model_name_task+" ===';",
+                "\t\tDO _i=1,"+str(len(self.ch))+";",
+                "\t\t\t_k=_ch"+self.model_name_task+"(_i);",
+                "\t\t\t_n=_chLay"+self.model_name_task+"(_i);",
+                "\t\t\tPRINT ' TAU = ',TAU,'\tDT = ',DT;",
+                "\t\t\tPRINT '- CH',_k,' in model "+self.model_name_task+"',_n;",
+                "\t\t\tPRINT 'Cl','----- P -------','---- VOID -----','---- T1 -------',",
+                "\t\t\t\t'---- DEN1 ------';",
+                "\t\t\t_mCh := 0.; _mCh = 0.;",
+                "\t\t\tDO _j=1,N.CH(_k);",
+                "\t\t\t\t! Расчет массы канала",
+                "\t\t\t\t_mCh = _mCh + ",
+                "\t\t\t\t\tV.CH(_k)(_j)*( VOID.CH(_k)(_j)*DEN.CH(_k)(2,_j) + ",
+                "\t\t\t\t\t(1.-VOID.CH(_k)(_j))*DEN.CH(_k)(1,_j) );",
+                "\t\t\t\tPRINT _j,P.CH(_k)(_j),VOID.CH(_k)(_j),T.CH(_k)(1,_j)-_tOffset,",
+                "\t\t\t\t\tDEN.CH(_k)(1,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Cl','---- T2 -------','---- DEN2 ------','---- XNG3 -----',",
+                "\t\t\t\t'---- XNG4 -----';",
+                "\t\t\tDO _j=1,N.CH(_k);",
+                "\t\t\t\tPRINT _j,T.CH(_k)(2,_j)-_tOffset,DEN.CH(_k)(2,_j),XNG.CH(_k)(3,_j),",
+                "\t\t\t\t\tXNG.CH(_k)(4,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Jc','---- CFLw -----','---- CFLs -----';",
+                "\t\t\tDO _j=1,N.CH(_k)+1;",
+                "\t\t\t\tIF(\"($W.CH(_k)(1,_j),1) < -1.e-13 | ",
+                "\t\t\t\t\t\"($W.CH(_k)(1,_j),1) > 1.e-13) THEN",
+                "\t\t\t\t\t_x = DT*W.CH(_k)(1,_j)/DZJ.CH(_k)(_j);",
+                "\t\t\t\tELSE",
+                "\t\t\t\t\t_x = -888.;",
+                "\t\t\t\tENDIF",
+                "\t\t\t\tIF(\"($W.CH(_k)(2,_j),2) < -1e-13 | ",
+                "\t\t\t\t\t\"($W.CH(_k)(2,_j),2) > 1e-13) THEN",
+                "\t\t\t\t\t_y = DT*W.CH(_k)(2,_j)/DZJ.CH(_k)(_j);",
+                "\t\t\t\tELSE",
+                "\t\t\t\t\t_y = -888.;",
+                "\t\t\t\tENDIF",
+                "\t\t\t\tPRINT _j,_x,_y;",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Jc','---- Gwater ---','---- Gsteam ---','---- Gmix -----',",
+                "\t\t\t\t'---- FRWw -----';",
+                "\t\t\tDO _j=1,N.CH(_k)+1;",
+                "\t\t\t\tPRINT _j,\"($W.CH(_k)(1,_j),1),\"($W.CH(_k)(2,_j),2),",
+                "\t\t\t\t\t\"($W.CH(_k)(1,_j),1) + \"($W.CH(_k)(2,_j),2),",
+                "\t\t\t\t\tW.CH(_k)(1,_j)*FRW.CH(_k)(1,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Jc','---- Wwater ---','---- Wsteam ---','---- MAPJ -----',",
+                "\t\t\t\t'---- FRWs -----';",
+                "\t\t\tDO _j=1,N.CH(_k)+1;",
+                "\t\t\t\tPRINT _j,W.CH(_k)(1,_j),W.CH(_k)(2,_j),MAPJ.CH(_k)(_j),",
+                "\t\t\t\t\t'\t\t\t\t\t\t\t',W.CH(_k)(2,_j)*FRW.CH(_k)(2,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT '-- Mass CH = ',_mCh;",
+                "\t\tENDDO\t",
+                "\t\tPRINT ' ';"
+            ])
 
     def __set__compiletime_diagnostics__(self):
 
-        self.__compiletime_diarnostics__ = [
+        self.__compiletime_diagnostics__ = [
             "\t! Диагностика геометрии",
             "\tIF first THEN",
             "\t\tfirst = 0;",
-            "\t\t_cntr := 0.;",
+            "\t\t_cntr"+self.model_name_task+" := 0.;",
             "\t\tPRINT '*** Сводные данные по "+self.model_name_task+" ***';",
             "\t\tPRINT '=== MODEL "+self.model_name_task+" GEOMETRY DIAGNOSTICS ===';",
         ]
         
         self.__ch_compiletime_diag__()
         
-        self.__compiletime_diarnostics__.extend([
+        self.__compiletime_diagnostics__.extend([
             "\t\tPRINT '=== MODEL "+self.model_name_task+" GEOMETRY DIAGNOSTICS END ===';",
             "\tENDIF"
         ])
 
     def __set__runtime_diagnostics__(self):
-        self.__runtime_diarnostics__ = [
+        self.__runtime_diagnostics__ = [
             "",
             "\t! инкремент счетчика",
-            "\tIF _cntr<=_dt"+self.model_name_task+" THEN",
-            "\t\t_cntr = _cntr+DT;",
+            "\tIF _cntr"+self.model_name_task+"<=_dt"+self.model_name_task+" THEN",
+            "\t\t_cntr"+self.model_name_task+" = _cntr"+self.model_name_task+"+DT;",
             "\tELSE",
-            "\t\t_cntr = 0.;",
+            "\t\t_cntr"+self.model_name_task+" = 0.;",
             "\tENDIF",
             "",
-            "\tIF _cntr==0. THEN ! выполнение процедуры",
+            "\tIF _cntr"+self.model_name_task+"==0. THEN ! выполнение процедуры",
             "\t\tPRINT '=== MODEL "+self.model_name_task+" CALCULATION DIAGNOSTICS ===';",
             "\t\tPRINT 'TAU = ',TAU,'  DT = ',DT;",
         ]
 
         self.__ch_runtime_diag__()
 
-        self.__runtime_diarnostics__.append("\tENDIF")
+        self.__runtime_diagnostics__.append("\tENDIF")
 
     def __set_diagnostics__(self):
         self.__sets__.append("SET "+"_Monitor"+self.model_name_task+";")
 
-        self.__diarnostics__ = [            
+        self.__diagnostics__ = [            
             "EVENT _Monitor"+self.model_name_task+"(_dt"+self.model_name_task+")",
             "\treplace = 1;",
             "\tturn_on = 1;"
@@ -489,25 +513,35 @@ class Model:
 
         self.__set__compiletime_diagnostics__()
 
-        self.__diarnostics__.extend(self.__compiletime_diarnostics__)
+        self.__diagnostics__.extend(self.__compiletime_diagnostics__)
 
         self.__set__runtime_diagnostics__()
 
-        self.__diarnostics__.extend(self.__runtime_diarnostics__)
+        self.__diagnostics__.extend(self.__runtime_diagnostics__)
 
-        self.__diarnostics__.extend(["END"])
+        self.__diagnostics__.extend(["END"])
 
 
-    def rebuild(self, elements: List[Element], model_layout: List[str], boundary_layout: List[str], sensors: List[Sensor] = []):
+    def rebuild(
+            self, 
+            elements: List[Element], 
+            model_layout: List[str], 
+            boundary_layout: List[str], 
+            sensors: List[Sensor] = [],
+            submodels = []
+        ):
         """
         Перестроить блоки LAYOUT, CALLs и DATA, а также датчики модели
         """
+        self.submodels = submodels
         self.elements = []
         self.all_elements = []
 
         self.__calls__ = []
         self.__data__ = []
         self.__sets__ = []
+        self.__outputs__ = []
+        self.__monitors__ = []
 
         if len(elements) > 0:
             i_ch = 1
@@ -548,6 +582,7 @@ class Model:
                     self.__calls__.append("CALL "+el.name()+";")
                     self.__data__.extend(el.__data__)
 
+        self.elements_submodels = self.elements
 
         self.__calls__.insert(0, "!!bb CALLs "+self.model_name_task)
         self.__calls__.append("!!eb CALLs "+self.model_name_task)
@@ -556,10 +591,37 @@ class Model:
         self.__data__.append("!!eb DATAs "+self.model_name_task)
 
         self.__layout__(model_layout, boundary_layout)
+
         self.__set_sensors__(sensors)
+        if len(sensors)>0:
+            self.__outputs__.append("\t,"+"_sens_"+self.model_name_task)
+        if not self.mon_per is None:
+            self.__monitors__.append("\tCALL _Monitor"+self.model_name_task+"("+str(self.mon_per)+");")
+        else:
+            self.__monitors__.append("\tCALL _Monitor"+self.model_name_task+"(_monPer);")
 
         self.__set_diagnostics__()
         self.__sets__.insert(0, "!!bb SETs "+self.model_name_task)
         self.__sets__.append("!!eb SETs "+self.model_name_task)
+
+        if len(submodels) > 0:
+            for m in submodels:
+                m.rebuild(
+                    copy.copy(m.all_elements), 
+                    copy.copy(m.model_layout), 
+                    copy.copy(m.boundary_layout), 
+                    copy.copy(m.sensors), 
+                    copy.copy(m.submodels)
+                )
+                self.__calls__ = m.__calls__ + self.__calls__
+                self.__data__ = m.__data__ + self.__data__
+                self.__sets__ = m.__sets__ + self.__sets__
+                self.__diagnostics__ = m.__diagnostics__ + self.__diagnostics__
+                self.elements_submodels = m.elements_submodels + self.elements_submodels
+                self.task_layout = m.task_layout + self.task_layout
+                self.task_sensors_def = m.task_sensors_def + self.task_sensors_def
+                self.task_sensors_eval = m.task_sensors_eval + self.task_sensors_eval
+                self.__outputs__ = m.__outputs__ + self.__outputs__
+                self.__monitors__ = m.__monitors__ + self.__monitors__
 
     

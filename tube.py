@@ -1,4 +1,5 @@
 from nlpy.model import Model
+from itertools import count
 from nlpy.elements import CH
 from nlpy.elements import HCS
 from nlpy.elements import BVOL_T
@@ -8,8 +9,9 @@ from nlpy.materials import Steel08H18N10T
 import numpy as np
 
 class Tube(Model):
+    ids = count(1)
     def __init__(self):
-        Model.__init__(self, name="Tube")
+        Model.__init__(self, name="Tube", id=next(self.ids))
 
         self.ch1 = CH(
             N = 5,
@@ -88,10 +90,10 @@ class Tube(Model):
         )
 
 
-tube_model1 = Tube()
-from nlpy import write_data
+# tube_model1 = Tube()
+# from nlpy import write_data
 # write_data(tube_model1.__diarnostics__,"./diag1.txt")
-tube_model2 = Model(tube_model1)
+# tube_model2 = Tube()
 # write_data(tube_model2.__diarnostics__,"./diag2.txt")
 
 print('a')

@@ -1,15 +1,15 @@
 import numpy as np
 
 from nlpy import Task
-from tube import tube_model1, tube_model2
+# from tube import tube_model1, tube_model2
 
-import tube
+from tjun import tjun
 
 # tube_model1.bv1.disable()
 
 test = Task(
     'test', 
-    [tube_model1],
+    [tjun],
     restart = 0,
     title = "\'vb.036.003\'",
     dt_max = 0.01,
