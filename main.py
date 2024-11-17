@@ -3,14 +3,15 @@ import numpy as np
 from nlpy import Task
 # from tube import tube_model1, tube_model2
 
-from tjun import tjun
-# from cooler import cool
+# from tjun import tjun
+from cooler import cool
 
 # tube_model1.bv1.disable()
 
 test = Task(
     'test', 
-    [tjun],
+    [cool],
+    # [tjun],
     restart = 0,
     title = "\'vb.036.003\'",
     dt_max = 0.01,
