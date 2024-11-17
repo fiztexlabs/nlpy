@@ -1,5 +1,7 @@
 #Python
 __pycache__/
+dist/
+NLPY.egg-info
 
 # KORSAR starters
 *.bat

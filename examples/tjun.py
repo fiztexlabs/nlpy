@@ -1,6 +1,10 @@
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
+from itertools import count
+
 from nlpy import Model
 from nlpy import Event
-from itertools import count
 from tube import Tube
 
 

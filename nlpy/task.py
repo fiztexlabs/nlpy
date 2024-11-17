@@ -231,7 +231,11 @@ class Task:
             Полный путь к файлу зоны задания
         """
         if path == "":
-            path = os.path.join("./"+self.task_name+".kor")
+            path = os.path.join(os.path.dirname(os.path.abspath(os.getcwd()))+"\\"+self.task_name+".kor")
+
+        if not os.path.exists(os.path.dirname(os.path.abspath(path))):
+            os.mkdir(os.path.dirname(os.path.abspath(path)))
+
         
         with open(path,'w') as f:
             for line in self.kordat:

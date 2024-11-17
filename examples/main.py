@@ -1,4 +1,7 @@
-import numpy as np
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
+from itertools import count
 
 from nlpy import Task
 # from tube import tube_model1, tube_model2

@@ -1,5 +1,9 @@
-from nlpy import Model
+import os
+import sys
+sys.path.insert(0, os.path.abspath('.'))
 from itertools import count
+
+from nlpy import Model
 from nlpy.elements import CH
 from nlpy.elements import HCS
 from nlpy.elements import BVOL_T
