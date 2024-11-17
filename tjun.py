@@ -1,4 +1,5 @@
-from nlpy.model import Model
+from nlpy import Model
+from nlpy import Event
 from itertools import count
 from tube import Tube
 
@@ -20,7 +21,20 @@ class TJUN(Model):
                 "Tube2.CH1/o - Tube1.CH1(2);",
             ],
             sensors = [],
-            submodels = [self.pipe1,self.pipe2]
+            submodels = [self.pipe1,self.pipe2],
+            events = [
+                Event(
+                    "_print_dat",
+                    0,
+                    1,
+                    [self,self.pipe1,self.pipe2],
+                    [
+                        "PRINT \'Tube1 BV \', P.Tube1.BVOL_T1;"
+                        "PRINT \'Tube2 BV \', P.Tube2.BVOL_T1;"
+                    ]
+                )
+
+            ]
         )
 
 tjun = TJUN()

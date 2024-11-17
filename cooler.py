@@ -1,5 +1,5 @@
 from itertools import count
-from nlpy.model import Model
+from nlpy import Model
 from nlpy.elements import CH
 from nlpy.elements import HCS
 from nlpy.elements import LR
@@ -8,6 +8,7 @@ from nlpy.elements import SMASS_T
 from nlpy.elements import BHEAT
 from nlpy.elements import BLJUN
 from nlpy.materials import Steel08H18N10T
+from nlpy import Event
 
 import numpy as np
 
@@ -157,7 +158,7 @@ class COOLER(Model):
 
         self.ch2 = CH(
             N = 5,
-            S = np.pi*0.0325**2,
+            S = round(np.pi*0.0325**2,7),
             PR = np.pi*2.0*0.0325,
             DZ = 0.488,
             DH = -0.488,
@@ -391,14 +392,14 @@ class COOLER(Model):
             )
 
         self.bv1 = BVOL_T(
-            P = 1.e6,
-            T = [293.0, 453.15],
+            P = self.P0_1k,
+            T = [self.T0_1k, 618.98],
             VOID = 0.
         )
 
         self.bv2 = BVOL_T(
-            P = 1.e6,
-            T = [293.0, 453.15],
+            P = self.P0_3k,
+            T = [self.T0_3k, 618.98],
             VOID = 0.
         )
         
@@ -450,6 +451,21 @@ class COOLER(Model):
             "T.CH3(1,27);"
         )
 
+        self.action = Event(
+            "Action",
+            0,
+            1,
+            [self],
+            [
+                "IF TAU>2. THEN",
+                "T.BVOL_T1(1) = MIN(T.BVOL_T1(1)+DT*30,325.+_t0C);",
+                "T.BVOL_T1(2) = WS1P1(2,'P',P.BVOL_T1,2);",
+                "GMOUT.SMASS_T1 = MIN(GMOUT.SMASS_T1+DT*0.3,3.056);",
+                "GMOUT.SMASS_T2 = MIN(GMOUT.SMASS_T2+DT*1.3889,13.889);",
+                "ENDIF"
+            ]
+        )
+
         self.rebuild(
             elements = [
                 self.ch1, 
@@ -485,9 +501,9 @@ class COOLER(Model):
             ],
             sensors=[self.t_1k_in,self.t_1k_out,self.t_3k_in,self.t_3k_out],
             submodels = [],
-            submodel_links_layout = []
+            submodel_links_layout = [],
+            events = [self.action]
         )
 
 
 cool = COOLER()
-print('a')

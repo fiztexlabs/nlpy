@@ -86,7 +86,7 @@ class Task:
         self.__data__ = []
         self.__dignostics__ = []
         self.__monitors__ = []
-        self.__events__ = []
+        self.__events__ = ["!!bb EVENTs"]
         self.__outputs__ = [
             "WRITE",
             "\tDT",
@@ -108,7 +108,8 @@ class Task:
                 boundary_layout=copy.copy(m.boundary_layout), 
                 sensors=copy.copy(m.sensors), 
                 submodels=copy.copy(m.submodels),
-                submodel_links_layout=copy.copy(m.submodel_links_layout)
+                submodel_links_layout=copy.copy(m.submodel_links_layout),
+                events=copy.copy(m.events)
             )
             for el in m.elements_submodels:
                 if el.is_enabled():
@@ -142,10 +143,12 @@ class Task:
             #     self.__monitors__.append("\tCALL _Monitor"+m.model_name_task+"(_monPer);")
             # if len(m.sensors)>0:
             #     self.__outputs__.append("\t,"+"_sens_"+m.model_name_task)
+            self.__events__.extend(m.__events__)
             self.__outputs__.extend(m.__outputs__)
             self.__sets__.extend(m.__sets__)
 
         self.__monitors__.append("END")
+        self.__events__.append("!!eb EVENTs")
 
         self.__globals__.extend([
             "!!bb General variables",
@@ -215,6 +218,7 @@ class Task:
         self.kordat.extend(self.__dignostics__)
         self.kordat.extend(self.__monitors__)
         self.kordat.extend(self.__sensors__)
+        self.kordat.extend(self.__events__)
         self.kordat.extend(self.__outputs__)
 
     def write_kordat(self, path: str = ""):

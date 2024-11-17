@@ -179,6 +179,7 @@ class Model:
         self.task_sensors_eval = []
 
         self.sensors = []
+        self.events = []
         self.active_sensors = []
 
         self.__calls__ = []
@@ -186,6 +187,7 @@ class Model:
         self.__data__ = []
         self.__sensors__ = []
         self.__sens_eval__ = []
+        self.__events__ = []
 
         self.id = kwargs['id']
         if kwargs['name'] == "":
@@ -213,6 +215,7 @@ class Model:
         boundary_layout = []
         model_layout = []
         submodel_links_layout = []
+        events = []
         if 'boundary_layout' in kwargs:
             boundary_layout = kwargs['boundary_layout']
         if 'model_layout' in kwargs:
@@ -225,6 +228,8 @@ class Model:
             submodels = kwargs['submodels']
         if 'submodel_links_layout' in kwargs:
             submodel_links_layout = kwargs['submodel_links_layout']
+        if 'events' in kwargs:
+            events = kwargs['events']
 
         self.rebuild(
             elements=elements, 
@@ -232,7 +237,8 @@ class Model:
             boundary_layout=boundary_layout, 
             sensors=sensors, 
             submodels=submodels,
-            submodel_links_layout=submodel_links_layout
+            submodel_links_layout=submodel_links_layout,
+            events=events
         )
 
     # def __copy_constructor__(self, orig):
@@ -684,6 +690,9 @@ class Model:
         submodel_links_layout = kwargs['submodel_links_layout']
         sensors = kwargs['sensors']
         submodels = kwargs['submodels']
+        events = kwargs['events']
+
+        self.events = events
         
         
         self.submodels = submodels
@@ -693,8 +702,9 @@ class Model:
         self.__calls__ = []
         self.__data__ = []
         self.__sets__ = []
-        self.__outputs__ = []
         self.__monitors__ = []
+        self.__events__ = []
+        self.__outputs__ = []
 
         if len([elements]) > 0:
             i_ch = 1
@@ -755,6 +765,16 @@ class Model:
 
         self.__set_diagnostics__()
         self.__sets__.insert(0, "!!bb SETs "+self.model_name_task)
+
+        if len(events) > 0:
+            for e in events:
+                if e.is_enabled():
+                    self.__events__.extend(e.task_layout)
+                    self.__sets__.append("SET "+e.task_name+";")
+
+        self.__events__.insert(0, "!!bb EVENTs "+self.model_name_task)
+        self.__events__.append("!!eb EVENTs "+self.model_name_task)
+
         self.__sets__.append("!!eb SETs "+self.model_name_task)
 
         if len(submodels) > 0:
@@ -765,7 +785,8 @@ class Model:
                     boundary_layout=copy.copy(m.boundary_layout), 
                     sensors=copy.copy(m.sensors), 
                     submodels=copy.copy(m.submodels),
-                    submodel_links_layout=copy.copy(m.submodel_links_layout)
+                    submodel_links_layout=copy.copy(m.submodel_links_layout),
+                    events=copy.copy(m.events)
                 )
                 self.__calls__ = m.__calls__ + self.__calls__
                 self.__data__ = m.__data__ + self.__data__
@@ -777,5 +798,6 @@ class Model:
                 self.task_sensors_eval = m.task_sensors_eval + self.task_sensors_eval
                 self.__outputs__ = m.__outputs__ + self.__outputs__
                 self.__monitors__ = m.__monitors__ + self.__monitors__
+                self.__events__ = m.__events__ + self.__events__
 
     

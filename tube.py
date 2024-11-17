@@ -1,10 +1,11 @@
-from nlpy.model import Model
+from nlpy import Model
 from itertools import count
 from nlpy.elements import CH
 from nlpy.elements import HCS
 from nlpy.elements import BVOL_T
 from nlpy.elements import BHEAT
 from nlpy.materials import Steel08H18N10T
+from nlpy import Event
 
 import numpy as np
 
@@ -88,7 +89,18 @@ class Tube(Model):
             ],
             sensors=[self.t_in,self.p_in],
             submodels = [],
-            submodel_links_layout = []
+            submodel_links_layout = [],
+            events = [
+                Event(
+                    "_hello",
+                    0,
+                    1,
+                    [self],
+                    [
+                        "PRINT \'HELLO\';"
+                    ]
+                )
+            ]
         )
 
 
