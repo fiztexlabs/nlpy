@@ -98,8 +98,8 @@ class SMASS_T(Element):
         self.__data__.extend(fill_korsar_array(self.GIN1, "GIN(1)"))
         self.__data__.extend(fill_korsar_array(self.GIN2, "GIN(2)"))
         self.__data__.extend(fill_korsar_array(self.GMOUT, "GMOUT"))
-        self.__data__.extend(fill_korsar_array(self.GIN1, "EHIN(1)"))
-        self.__data__.extend(fill_korsar_array(self.GIN2, "EHIN(2)"))
+        self.__data__.extend(fill_korsar_array(self.EHIN1, "EHIN(1)"))
+        self.__data__.extend(fill_korsar_array(self.EHIN2, "EHIN(2)"))
 
         self.__data__.append("END")
 

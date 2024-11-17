@@ -60,6 +60,7 @@ class BLJUN(Element):
         TYPE: int
     ):
         self.TYPE = np.array(fill_list_or_float(TYPE,1),dtype=int)
+        self.rebuild()
 
     def rebuild(self):
         self.__data__ = []

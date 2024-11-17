@@ -228,7 +228,7 @@ class Task:
         """
         if path == "":
             path = os.path.join("./"+self.task_name+".kor")
-            
+        
         with open(path,'w') as f:
             for line in self.kordat:
                 f.write(line+'\n')

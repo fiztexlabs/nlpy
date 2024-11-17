@@ -71,6 +71,16 @@ class Element:
 
         write_data(self.__data__,path)
 
+    def __add__(self, other):
+        if isinstance(other, str):
+            return self.__type__+str(self.id_model) + other
+        return NotImplemented
+
+    def __radd__(self, other):
+        if isinstance(other, str):
+            return other + self.__type__+str(self.id_model)
+        return NotImplemented
+
     def enable(self):
         """
         Включить граничное условие модели в задачу

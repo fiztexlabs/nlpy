@@ -4,7 +4,9 @@ from nlpy.elements import CH
 from nlpy.elements import HCS
 from nlpy.elements import LR
 from nlpy.elements import BVOL_T
+from nlpy.elements import SMASS_T
 from nlpy.elements import BHEAT
+from nlpy.elements import BLJUN
 from nlpy.materials import Steel08H18N10T
 
 import numpy as np
@@ -20,7 +22,7 @@ class COOLER(Model):
         self.P0_3k = 0.3e6
         self.T0_3k = 40+273.15
 
-        self.mtr_in = CH(
+        self.ch1 = CH(
             N = 29,
             S = np.array([
 			    0.027022,
@@ -153,7 +155,7 @@ class COOLER(Model):
             ROU = 0.
         )
 
-        self.mtr_out = CH(
+        self.ch2 = CH(
             N = 5,
             S = np.pi*0.0325**2,
             PR = np.pi*2.0*0.0325,
@@ -166,7 +168,7 @@ class COOLER(Model):
             ROU = 0.
         )
 
-        self.vntr = CH(
+        self.ch3 = CH(
             N = 28,
             S = np.array([
 			    0.003318,
@@ -295,7 +297,7 @@ class COOLER(Model):
             ROU = 0.
         )
 
-        self.tubes = HCS(
+        self.hcs1 = HCS(
             N = 20,
             KL = 1,
             K = 5,
@@ -313,7 +315,7 @@ class COOLER(Model):
             KIND = np.array([6,4])
         )
 
-        self.case = HCS(
+        self.hcs2 = HCS(
             N = 26,
             KL = 1,
             K = 5,
@@ -388,7 +390,6 @@ class COOLER(Model):
                 )
             )
 
-
         self.bv1 = BVOL_T(
             P = 1.e6,
             T = [293.0, 453.15],
@@ -400,46 +401,89 @@ class COOLER(Model):
             T = [293.0, 453.15],
             VOID = 0.
         )
+        
+        self.sm1 = SMASS_T(
+            GIN = [0., 0.],
+            GMOUT = 0.,
+            EHIN = [430849.48, 2591220.72]
+        )
+        
+        self.sm2 = SMASS_T(
+            GIN = [0., 0.],
+            GMOUT = 0.,
+            EHIN = [168154.86, 2591220.72]
+        )
+        
 
         self.bh_air = BHEAT(
             TYPE = 3,
             BCOND = [1., 293.]
         )
+        
+        self.bljun = BLJUN(
+            TYPE = 0
+        )
+        
+        self.boundaries = [
+            self.bh_air, 
+            self.bv1, 
+            self.bv2,
+            self.sm1,
+            self.sm2,
+            self.bljun
+        ]
 
-        # self.t_in = Model.Sensor(
-        #     "t input",
-        #     "T.CH1(1,1);"
-        # )
-        # self.p_in = Model.Sensor(
-        #     "p input",
-        #     "P.CH1(1);"
-        # )
+        self.t_1k_in = Model.Sensor(
+            "t_1k_in",
+            "T.CH1(1,29);"
+        )
+        self.t_1k_out = Model.Sensor(
+            "t_1k_out",
+            "T.CH2(1,2);"
+        )
+        self.t_3k_in = Model.Sensor(
+            "t_3k_in",
+            "T.CH3(1,1);"
+        )
+        self.t_3k_out = Model.Sensor(
+            "t_3k_out",
+            "T.CH3(1,27);"
+        )
 
         self.rebuild(
             elements = [
-                self.mtr_in, 
-                self.mtr_out,
-                self.vntr,
-                self.tubes,
-                self.case,
+                self.ch1, 
+                self.ch2,
+                self.ch3,
+                self.hcs1,
+                self.hcs2,
                 self.lr_in_mtr, 
                 self.lr_out_mtr, 
                 self.lr_in_vntr, 
                 self.lr_out_vntr,
-            ] + self.lr_tr_out + [
-                self.bh_air, 
-                self.bv1, 
-                self.bv2
-            ],
+            ] + self.lr_tr_out + self.boundaries,
             model_layout = [
-                "CH1(1:5) - HCS1(1:5)/1;",
-                "HCS1(1:5)/2 - BHEAT1;"
+                "CH1/i - BLJUN1;",
+				"CH2/i - BLJUN1;",
+				"CH3/o - BLJUN1;",
+				"CH1(29) - LR1;",
+				"CH1(7:25) - LR(5:23);",
+				"CH2/o - CH1(1);",
+				"CH2(5) - LR2;",
+				"CH3(4) - LR4;",
+				"CH3(28) - LR3;",
+				"HCS1(1:20)/1 - CH3(6:25);",
+				"HCS1(1:20)/2 - CH1(6:25);",
+				"HCS2(1:26)/1 - CH1(1:26);",
             ],
             boundary_layout = [
-                "CH1/i - BVOL_T1;",
-                "CH1/o - BVOL_T2;"
+				"CH1/o - BVOL_T1;",
+				"CH2(1) - SMASS_T1;",
+				"CH3/i - BVOL_T2;",
+				"CH3(28) - SMASS_T2;",
+				"HCS2(1:26)/2 - BHEAT1;"
             ],
-            sensors=[],
+            sensors=[self.t_1k_in,self.t_1k_out,self.t_3k_in,self.t_3k_out],
             submodels = [],
             submodel_links_layout = []
         )

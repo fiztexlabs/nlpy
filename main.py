@@ -3,13 +3,14 @@ import numpy as np
 from nlpy import Task
 # from tube import tube_model1, tube_model2
 
-from tjun import tjun
+# from tjun import tjun
+from cooler import cool
 
 # tube_model1.bv1.disable()
 
 test = Task(
     'test', 
-    [tjun],
+    [cool],
     restart = 0,
     title = "\'vb.036.003\'",
     dt_max = 0.01,
@@ -27,6 +28,7 @@ test = Task(
     okbm = 1,
     # nwsp_dat = "\'n:\\Dep49\\Common\\MCD\\Utils\\KORSAR-KUPOL\\nwsp_dat\'"
     nwsp_dat = "\'c:\\codes\\KORSAR\\nwsp_dat\'",
+    # nwsp_dat = "\'d:\\KORSAR\\nwsp_dat\'",
     _monPer = 2.,
     _diag = 2.
 )
