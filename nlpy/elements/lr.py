@@ -74,8 +74,8 @@ class LR(Element):
         
         self.__data__.append("DATA "+self.__name__)
 
-        self.__data__.extend(fill_korsar_array(self.BCOND1, "CSI1"))
-        self.__data__.extend(fill_korsar_array(self.BCOND2, "CSI2"))
+        self.__data__.extend(fill_korsar_array(self.CSI1, "CSI1"))
+        self.__data__.extend(fill_korsar_array(self.CSI2, "CSI2"))
 
         self.__data__.append("END")
 

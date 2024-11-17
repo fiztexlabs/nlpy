@@ -423,6 +423,68 @@ class Model:
                 ]
             )
 
+    def __hcs_compiletime_diag__(self):
+        if len(self.hcs) > 0:
+            task_hcs_nums = []
+            model_hcs_nums = []
+            hcs_cells_nums = []
+            for hcs in self.hcs:
+                model_hcs_nums.append(hcs.id_model)
+                task_hcs_nums.append(hcs.id)
+                hcs_cells_nums.append(hcs.N)
+
+            self.__compiletime_diagnostics__.extend(fill_korsar_array(
+                task_hcs_nums, 
+                "_hcs"+self.model_name_task,
+                "(1:"+str(len(task_hcs_nums))+")",
+                ":=",
+                "\t\t"
+            ))
+            self.__compiletime_diagnostics__.extend(fill_korsar_array(
+                model_hcs_nums, 
+                "_hcsLay"+self.model_name_task,
+                "(1:"+str(len(model_hcs_nums))+")",
+                ":=",
+                "\t\t"
+            ))
+            self.__compiletime_diagnostics__.extend(fill_korsar_array(
+                hcs_cells_nums, 
+                "_hcsN"+self.model_name_task,
+                "(1:"+str(len(hcs_cells_nums))+")",
+                ":=",
+                "\t\t"
+            ))
+
+            self.__compiletime_diagnostics__.extend(
+                [
+                    "\t\tPRINT '*** HCS DATA "+self.model_name_task+" ***';",
+                    "\t\tDO _i=1,"+str(len(self.hcs))+";",
+                    "\t\t\t_m=_hcs"+self.model_name_task+"(_i);",
+                    "\t\t\t_n=_hcsLay"+self.model_name_task+"(_i);",
+                    "\t\t\tPRINT '- HCS',_m,' in model "+self.model_name_task+" ',_n;",
+                    "\t\t\t! Геометрия ТК",
+                    "\t\t\t_dzFullHcs"+self.model_name_task+" := 0.;",
+                    "\t\t\t_f1FullHcs"+self.model_name_task+" := 0.;",
+                    "\t\t\t_f2FullHcs"+self.model_name_task+" := 0.;",
+                    "\t\t\tPRINT 'Cl','----- DFZ ----- ','----- DF1 ----- ','---- DF2 ------';",
+                    "\t\t\t\tDO _j=1,N.HCS(_m);",
+                    "\t\t\t\t\t_dzFullHcs"+self.model_name_task+" = _dzFullHcs"+self.model_name_task+" + DFZ.HCS(_m)(_j);",
+                    "\t\t\t\t\t_f1FullHcs"+self.model_name_task+" = _f1FullHcs"+self.model_name_task+" + DF.HCS(_m)(1,_j);",
+                    "\t\t\t\t\t_f2FullHcs"+self.model_name_task+" = _f2FullHcs"+self.model_name_task+" + DF.HCS(_m)(2,_j);",
+                    "\t\t\t\t\tPRINT _j,DFZ.HCS(_m)(_j),DF.HCS(_m)(1,_j),DF.HCS(_m)(2,_j);",
+                    "\t\t\t\tENDDO",
+                    "\t\t\tPRINT '---------------------------------------------------';",
+                    "\t\t\tPRINT 'Full length      ',_dzFullHcs"+self.model_name_task+";",
+                    "\t\t\tPRINT 'Surf 1 area      ',_f1FullHcs"+self.model_name_task+";",
+                    "\t\t\tPRINT 'Surf 2 area      ',_f2FullHcs"+self.model_name_task+";",
+                    "\t\t\tPRINT 'Geom mult B      ',B.HCS(_m);",
+                    "\t\t\tPRINT 'Coeff. ALM-1     ',ALM.HCS(_m)(1);",
+                    "\t\t\tPRINT 'Coeff. ALM-2     ',ALM.HCS(_m)(2);",
+                    "\t\tENDDO",
+                    "\t\tPRINT ' ';",
+                ]
+            )
+
     def __ch_runtime_diag__(self):
         if len(self.ch) > 0:
             self.__runtime_diagnostics__.extend([
@@ -483,6 +545,40 @@ class Model:
                 "\t\tPRINT ' ';"
             ])
 
+    def __hcs_runtime_diag__(self):
+        if len(self.hcs) > 0:
+            self.__runtime_diagnostics__.extend([
+                "\t\tPRINT '=== HCS DATA "+self.model_name_task+" ===';",
+                "\t\tDO _i=1,"+str(len(self.hcs))+";",
+                "\t\t\t_k=_hcs"+self.model_name_task+"(_i);",
+                "\t\t\t_n=_hcsLay"+self.model_name_task+"(_i);",
+                "\t\t\tPRINT ' TAU = ',TAU,'\tDT = ',DT;",
+                "\t\t\tPRINT '- HCS',_k,' in model "+self.model_name_task+"',_n;",
+                "\t\t\tPRINT 'Cl','----- Tw1 -----','---- Tw2 ------','---- ALW1 -----';",
+                "\t\t\tDO _j=1,N.HCS(_k);",
+                "\t\t\t\tPRINT _j,TW.HCS(_k)(1,_j)-_tOffset,TW.HCS(_k)(2,_j)-_tOffset,",
+                "\t\t\t\t\tALW.HCS(_k)(1,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Cl','---- ALW2 -----','---- Qw1-1 ----','---- Qw1-2 ----';",
+                "\t\t\t_x = 0.;_y = 0.;  ! Мощности",
+                "\t\t\tDO _j=1,N.HCS(_k);",
+                "\t\t\t\t_x = _x + QW.HCS(_k)(1,_j)+QW.HCS(_k)(2,_j);",
+                "\t\t\t\t_y = _y + QW.HCS(_k)(3,_j)+QW.HCS(_k)(4,_j);",
+                "\t\t\t\tPRINT _j,ALW.HCS(_k)(2,_j),QW.HCS(_k)(1,_j),QW.HCS(_k)(2,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Cl','---- Qw2-1 ----','---- Qw2-2 ----','---- Mod1 -----';",
+                "\t\t\tDO _j=1,N.HCS(_k);",
+                "\t\t\t\tPRINT _j,QW.HCS(_k)(3,_j),QW.HCS(_k)(4,_j),MOD.HCS(_k)(1,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Cl','---- QR1 ------','---- QR2 ------','---- Mod2 -----';",
+                "\t\t\tDO _j=1,N.HCS(_k);",
+                "\t\t\t\tPRINT _j,QR.HCS(_k)(1,_j),QR.HCS(_k)(2,_j),MOD.HCS(_k)(2,_j);",
+                "\t\t\tENDDO",
+                "\t\t\tPRINT 'Total power Qw/1, Qw/2:',_x,_y;",
+                "\t\tENDDO",
+                "\t\tPRINT ' ';"
+            ])
+
     def __set__compiletime_diagnostics__(self):
 
         self.__compiletime_diagnostics__ = [
@@ -495,6 +591,7 @@ class Model:
         ]
         
         self.__ch_compiletime_diag__()
+        self.__hcs_compiletime_diag__()
         
         self.__compiletime_diagnostics__.extend([
             "\t\tPRINT '=== MODEL "+self.model_name_task+" GEOMETRY DIAGNOSTICS END ===';",
@@ -517,6 +614,7 @@ class Model:
         ]
 
         self.__ch_runtime_diag__()
+        self.__hcs_runtime_diag__()
 
         self.__runtime_diagnostics__.append("\tENDIF")
 
